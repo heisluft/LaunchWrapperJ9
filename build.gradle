@@ -1,0 +1,60 @@
+plugins {
+  id 'java'
+  id 'maven-publish'
+  id 'signing'
+}
+
+group 'net.minecraft'
+version '1.13.2'
+
+java.toolchain.languageVersion.set(JavaLanguageVersion.of(8))
+
+repositories {
+  mavenCentral()
+}
+
+dependencies {
+  implementation "org.ow2.asm:asm-tree:7.3.1"
+  implementation("org.lwjgl.lwjgl:lwjgl:2.9.3") {
+    transitive false
+  }
+  implementation "net.sf.jopt-simple:jopt-simple:5.0.4"
+  implementation "org.apache.logging.log4j:log4j-core:2.17.1"
+}
+
+tasks.withType(JavaCompile) {
+  options.encoding = 'UTF-8'
+  // Did not think that this actually works (fortunatly, the compiler can link 1.6 swing methods and ignores 1.6 syntax :D)
+  sourceCompatibility = targetCompatibility = '1.5'
+}
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  archiveClassifier.set 'sources'
+  from sourceSets.main.allSource
+}
+
+jar.manifest.attributes.put("Main-Class", "net.minecraft.launchwrapper.Launch")
+
+publishing {
+  repositories {
+    maven {
+      url mavenUrl
+      credentials {
+        username mavenUsername
+        password mavenPassword
+      }
+      authentication {
+        withType(BasicAuthentication)
+      }
+    }
+  }
+  publications.create('maven', MavenPublication) {
+    it.from components.getByName('java')
+    it.artifact sourcesJar
+  }
+}
+
+signing {
+  useGpgCmd()
+  sign publishing.publications.maven
+}
